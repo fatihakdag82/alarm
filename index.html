@@ -1,0 +1,884 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi Alarm</title>
+    <style>
+      :root {
+        --bg: #0e1116;
+        --bg-2: #0b0f14;
+        --panel: #161b22;
+        --text: #e6edf3;
+        --muted: #9da7b3;
+        --accent: #6ee7b7;
+        --danger: #f87171;
+        --input-bg: #0f141b;
+        --input-border: #27313d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+        background-attachment: fixed;
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 32px auto 80px;
+        padding: 0 20px;
+        position: relative;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: 0.3px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid #1f2630;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      input[type="time"],
+      input[type="text"],
+      select {
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      select {
+        cursor: pointer;
+      }
+      input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(1.4);
+        opacity: 0.9;
+      }
+      :root[data-theme="ice"] input[type="time"]::-webkit-calendar-picker-indicator,
+      :root[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: invert(0) brightness(0.3);
+        opacity: 0.8;
+      }
+      input[type="text"] {
+        min-width: 200px;
+      }
+      button {
+        background: #1f2630;
+        color: var(--text);
+        border: 1px solid #2d3745;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #3a4657;
+      }
+      .primary {
+        background: #17312a;
+        border-color: #1f6f5b;
+        color: #c7f9e5;
+      }
+      .neutral {
+        background: var(--panel);
+        border-color: var(--input-border);
+        color: var(--text);
+      }
+      .danger {
+        background: #2a1616;
+        border-color: #7f2b2b;
+        color: #fecaca;
+      }
+      .mute {
+        color: #d1d5db;
+      }
+      .alarms {
+        margin-top: 16px;
+        display: grid;
+        gap: 10px;
+      }
+      .alarm {
+        display: grid;
+        grid-template-columns: 1fr 2fr auto auto;
+        gap: 10px;
+        align-items: center;
+        background: #0f141b;
+        border: 1px solid #1f2630;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .alarm.muted {
+        opacity: 0.6;
+        border-style: dashed;
+        background: rgba(127, 127, 127, 0.12);
+      }
+      .alarm.muted input,
+      .alarm.muted button {
+        filter: grayscale(0.4);
+      }
+      .alarm small {
+        color: var(--muted);
+      }
+      .next {
+        margin-top: 14px;
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 22px;
+      }
+      .next span {
+        display: block;
+        margin-top: 6px;
+        font-size: 34px;
+        letter-spacing: 0.5px;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: rgba(5, 8, 13, 0.85);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 50;
+      }
+      .overlay.active {
+        display: flex;
+      }
+      .alarm-card {
+        text-align: center;
+        background: #11161e;
+        border: 1px solid #2a3442;
+        padding: 30px;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 100%;
+      }
+      .alarm-card h2 {
+        font-size: 56px;
+        margin: 0 0 8px;
+        letter-spacing: 1px;
+      }
+      .alarm-card p {
+        font-size: 20px;
+        color: var(--muted);
+        margin: 8px 0 18px;
+      }
+      .sound-note {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .file-tools {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .hidden-ui {
+        display: none;
+      }
+      .file-tools textarea {
+        width: 100%;
+        min-height: 80px;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      .theme-picker {
+        position: absolute;
+        top: 0;
+        right: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .lang-picker {
+        position: absolute;
+        top: 0;
+        right: 200px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      @media (max-width: 640px) {
+        .theme-picker {
+          position: static;
+          justify-content: flex-end;
+          margin-bottom: 10px;
+        }
+        .lang-picker {
+          position: static;
+          justify-content: flex-end;
+          margin-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="lang-picker">
+        <label for="lang-select" class="sound-note">Language</label>
+        <select id="lang-select">
+          <option value="en">EN</option>
+          <option value="tr">TR</option>
+        </select>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select" class="sound-note">Theme</label>
+        <select id="theme-select">
+          <option value="night">Night</option>
+          <option value="sunrise">Sunrise</option>
+          <option value="forest">Forest</option>
+          <option value="ice">Ice</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+      <h1>Multi Alarm</h1>
+      <p class="sub">Add any number of alarms. Each alarm repeats daily at its time.</p>
+
+      <div class="panel">
+        <div class="row">
+          <input id="new-time" type="time" />
+          <input id="new-name" type="text" placeholder="Alarm name (optional)" />
+          <button id="add" class="primary">Add Alarm</button>
+          <button id="enable-sound" class="neutral">Enable Sound</button>
+          <span class="sound-note" id="sound-status">Sound locked until user interaction.</span>
+        </div>
+        <div class="alarms" id="alarm-list"></div>
+        <div class="next" id="next-alarm">No upcoming alarms.</div>
+        <div class="sub hidden-ui" id="file-title">From alarms.txt (next 24 hours)</div>
+        <div class="file-tools hidden-ui">
+          <input id="file-input" type="file" accept=".txt,.csv" />
+          <button id="load-paste" class="neutral">Load Pasted</button>
+        </div>
+        <textarea class="hidden-ui" id="file-paste" placeholder="Paste alarms.txt content here"></textarea>
+        <div class="sound-note hidden-ui" id="file-alarm-status"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="alarm-card">
+        <h2 id="alarm-title">Alarm</h2>
+        <p id="alarm-detail"></p>
+        <button id="dismiss" class="danger">Dismiss</button>
+      </div>
+    </div>
+
+    <script>
+      const listEl = document.getElementById("alarm-list");
+      const fileStatusEl = document.getElementById("file-alarm-status");
+      const fileInputEl = document.getElementById("file-input");
+      const filePasteEl = document.getElementById("file-paste");
+      const loadPasteBtn = document.getElementById("load-paste");
+      const newTimeEl = document.getElementById("new-time");
+      const newNameEl = document.getElementById("new-name");
+      const addBtn = document.getElementById("add");
+      const nextEl = document.getElementById("next-alarm");
+      const overlay = document.getElementById("overlay");
+      const alarmTitle = document.getElementById("alarm-title");
+      const alarmDetail = document.getElementById("alarm-detail");
+      const dismissBtn = document.getElementById("dismiss");
+      const enableSoundBtn = document.getElementById("enable-sound");
+      const soundStatus = document.getElementById("sound-status");
+      const themeSelect = document.getElementById("theme-select");
+      const langSelect = document.getElementById("lang-select");
+
+      const storageKey = "multi-alarm.items.v1";
+      const themeKey = "multi-alarm.theme.v1";
+      const langKey = "multi-alarm.lang.v1";
+      const fileSourcesKey = "multi-alarm.fileSources.v1";
+      const lastTriggered = new Map();
+      const lastTriggeredFile = new Map();
+      let alarms = [];
+      let fileAlarms = [];
+      let fileSources = [];
+      let fileStatus = "empty";
+
+      const i18n = {
+        en: {
+          title: "Multi Alarm",
+          subtitle: "Add any number of alarms. Each alarm repeats daily at its time.",
+          add: "Add Alarm",
+          enableSound: "Enable Sound",
+          soundEnabledBtn: "Sound Enabled",
+          soundLocked: "Sound locked until user interaction.",
+          soundEnabled: "Sound enabled.",
+          theme: "Theme",
+          language: "Language",
+          alarmNamePlaceholder: "Alarm name (optional)",
+          alarmNameInline: "Alarm name",
+          nextNone: "No upcoming alarms.",
+          nextPrefix: "Next alarm",
+          nextIn: "in",
+          hour: "h",
+          minute: "min",
+          second: "sec",
+          alarmActive: "Alarm is active for 1 minute.",
+          dismiss: "Dismiss",
+          mute: "Mute",
+          unmute: "Unmute",
+          delete: "Delete",
+          fileHeader: "From alarms.txt (next 24 hours)",
+          fileLoading: "Loading alarms.txt...",
+          fileError: "Could not load alarms.txt",
+          fileEmpty: "No file-based alarms in the next 24 hours.",
+          filePastePlaceholder: "Paste alarms.txt content here",
+          fileLoadPaste: "Load Pasted",
+        },
+        tr: {
+          title: "Çoklu Alarm",
+          subtitle: "İstediğin kadar alarm ekle. Her alarm saatinde her gün tekrarlar.",
+          add: "Alarm Ekle",
+          enableSound: "Sesi Etkinleştir",
+          soundEnabledBtn: "Ses Etkin",
+          soundLocked: "Ses, kullanıcı etkileşimi olmadan açılamaz.",
+          soundEnabled: "Ses etkin.",
+          theme: "Tema",
+          language: "Dil",
+          alarmNamePlaceholder: "Alarm adı (isteğe bağlı)",
+          alarmNameInline: "Alarm adı",
+          nextNone: "Yaklaşan alarm yok.",
+          nextPrefix: "Sonraki alarm",
+          nextIn: "için kalan süre:",
+          hour: "saat",
+          minute: "dakika",
+          second: "saniye",
+          alarmActive: "Alarm 1 dakika boyunca aktif.",
+          dismiss: "Kapat",
+          mute: "Sessize Al",
+          unmute: "Sesi Aç",
+          delete: "Sil",
+          fileHeader: "alarms.txt kaynağı (önümüzdeki 24 saat)",
+          fileLoading: "alarms.txt yükleniyor...",
+          fileError: "alarms.txt okunamadı",
+          fileEmpty: "Önümüzdeki 24 saat içinde dosya alarmı yok.",
+          filePastePlaceholder: "alarms.txt içeriğini buraya yapıştırın",
+          fileLoadPaste: "Yapıştırılanı Yükle",
+        },
+      };
+      let currentLang = "en";
+
+      function t(key) {
+        return i18n[currentLang][key] || i18n.en[key] || key;
+      }
+
+      function applyLang(lang) {
+        currentLang = lang;
+        langSelect.value = lang;
+        localStorage.setItem(langKey, lang);
+        document.querySelector("h1").textContent = t("title");
+        document.querySelector(".sub").textContent = t("subtitle");
+        addBtn.textContent = t("add");
+        enableSoundBtn.textContent = soundEnabled ? t("soundEnabledBtn") : t("enableSound");
+        soundStatus.textContent = soundEnabled ? t("soundEnabled") : t("soundLocked");
+        document.querySelector('label[for="theme-select"]').textContent =
+          t("theme");
+        document.querySelector('label[for="lang-select"]').textContent =
+          t("language");
+        newNameEl.placeholder = t("alarmNamePlaceholder");
+        dismissBtn.textContent = t("dismiss");
+        document.getElementById("file-title").textContent = t("fileHeader");
+        filePasteEl.placeholder = t("filePastePlaceholder");
+        loadPasteBtn.textContent = t("fileLoadPaste");
+        if (fileStatus === "loading") fileStatusEl.textContent = t("fileLoading");
+        if (fileStatus === "error") fileStatusEl.textContent = t("fileError");
+        if (fileStatus === "empty") fileStatusEl.textContent = t("fileEmpty");
+        if (fileStatus === "ok") fileStatusEl.textContent = "";
+        render();
+        updateNext();
+      }
+
+      let audioCtx = null;
+      let soundEnabled = false;
+      let beepInterval = null;
+      let alarmTimeout = null;
+      let activeNames = [];
+
+      function load() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          alarms = raw ? JSON.parse(raw) : [];
+        } catch {
+          alarms = [];
+        }
+        const savedTheme = localStorage.getItem(themeKey) || "night";
+        applyTheme(savedTheme);
+        const savedLang = localStorage.getItem(langKey) || "en";
+        applyLang(savedLang);
+      }
+
+      function addHours(date, hours) {
+        const d = new Date(date);
+        d.setHours(d.getHours() + hours);
+        return d;
+      }
+
+      function parseTime12h(timeStr) {
+        const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (!match) return null;
+        let hour = Number(match[1]);
+        const minute = Number(match[2]);
+        const period = match[3].toUpperCase();
+        if (period === "PM" && hour < 12) hour += 12;
+        if (period === "AM" && hour === 12) hour = 0;
+        return { hour, minute };
+      }
+
+      function parseFileAlarms(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+        const header = lines[0].split(",").map((h) => h.trim());
+        const now = new Date();
+        const end = addHours(now, 24);
+        const year = now.getFullYear();
+        const results = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",").map((c) => c.trim());
+          if (cols.length < 3) continue;
+          const month = Number(cols[0]);
+          const day = Number(cols[1]);
+          if (!month || !day) continue;
+          for (let j = 2; j < cols.length; j++) {
+            const timeStr = cols[j];
+            if (!timeStr) continue;
+            const parsed = parseTime12h(timeStr);
+            if (!parsed) continue;
+            const dt = new Date(year, month - 1, day, parsed.hour, parsed.minute, 0, 0);
+            if (dt >= now && dt <= end) {
+              results.push({ name: header[j] || "Alarm", time: dt });
+            }
+          }
+        }
+        return results;
+      }
+
+      async function loadFileAlarms() {
+        try {
+          const raw = localStorage.getItem(fileSourcesKey);
+          fileSources = raw ? JSON.parse(raw) : [];
+        } catch {
+          fileSources = [];
+        }
+        rebuildFileAlarms();
+      }
+
+      function saveFileSources() {
+        localStorage.setItem(fileSourcesKey, JSON.stringify(fileSources));
+      }
+
+      function rebuildFileAlarms() {
+        fileAlarms = [];
+        fileSources.forEach((source) => {
+          const parsed = parseFileAlarms(source.text);
+          parsed.forEach((a) => fileAlarms.push({ ...a, source: source.name }));
+        });
+        fileStatus = fileAlarms.length === 0 ? "empty" : "ok";
+        render();
+        updateNext();
+      }
+
+      function addFileSource(name, text) {
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+        fileSources = fileSources.filter((s) => s.name !== trimmedName);
+        fileSources.push({ name: trimmedName, text });
+        saveFileSources();
+        rebuildFileAlarms();
+      }
+
+      function deleteFileSource(name) {
+        fileSources = fileSources.filter((s) => s.name !== name);
+        saveFileSources();
+        rebuildFileAlarms();
+      }
+
+      function formatDateTime(date) {
+        return date.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+
+      function save() {
+        localStorage.setItem(storageKey, JSON.stringify(alarms));
+      }
+
+      function ensureAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        soundEnabled = true;
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        soundStatus.textContent = t("soundEnabled");
+        enableSoundBtn.textContent = t("soundEnabledBtn");
+      }
+
+      function disableAudio() {
+        soundEnabled = false;
+        if (audioCtx && audioCtx.state === "running") {
+          audioCtx.suspend();
+        }
+        if (beepInterval) clearInterval(beepInterval);
+        beepInterval = null;
+        soundStatus.textContent = t("soundLocked");
+        enableSoundBtn.textContent = t("enableSound");
+      }
+
+      function applyTheme(theme) {
+        const root = document.documentElement;
+        root.setAttribute("data-theme", theme);
+        if (theme === "sunrise") {
+          root.style.setProperty("--bg", "#1b1010");
+          root.style.setProperty("--bg-2", "#120b0b");
+          root.style.setProperty("--panel", "#251515");
+          root.style.setProperty("--text", "#fff1e6");
+          root.style.setProperty("--muted", "#f2c3b4");
+          root.style.setProperty("--accent", "#f59e0b");
+          root.style.setProperty("--input-bg", "#160d0d");
+          root.style.setProperty("--input-border", "#3a2424");
+        } else if (theme === "forest") {
+          root.style.setProperty("--bg", "#0f1412");
+          root.style.setProperty("--bg-2", "#0b100e");
+          root.style.setProperty("--panel", "#151d17");
+          root.style.setProperty("--text", "#e5f4e9");
+          root.style.setProperty("--muted", "#a6c4b1");
+          root.style.setProperty("--accent", "#34d399");
+          root.style.setProperty("--input-bg", "#0f1511");
+          root.style.setProperty("--input-border", "#2a3a31");
+        } else if (theme === "ice") {
+          root.style.setProperty("--bg", "#dbeafe");
+          root.style.setProperty("--bg-2", "#c7d2fe");
+          root.style.setProperty("--panel", "#eff6ff");
+          root.style.setProperty("--text", "#0f172a");
+          root.style.setProperty("--muted", "#1f2937");
+          root.style.setProperty("--accent", "#2563eb");
+          root.style.setProperty("--input-bg", "#ffffff");
+          root.style.setProperty("--input-border", "#cbd5e1");
+        } else if (theme === "light") {
+          root.style.setProperty("--bg", "#f7f4ef");
+          root.style.setProperty("--bg-2", "#ece7df");
+          root.style.setProperty("--panel", "#ffffff");
+          root.style.setProperty("--text", "#1f2937");
+          root.style.setProperty("--muted", "#374151");
+          root.style.setProperty("--accent", "#0f766e");
+          root.style.setProperty("--input-bg", "#ffffff");
+          root.style.setProperty("--input-border", "#d1d5db");
+        } else {
+          root.style.setProperty("--bg", "#0e1116");
+          root.style.setProperty("--bg-2", "#0b0f14");
+          root.style.setProperty("--panel", "#161b22");
+          root.style.setProperty("--text", "#e6edf3");
+          root.style.setProperty("--muted", "#9da7b3");
+          root.style.setProperty("--accent", "#6ee7b7");
+          root.style.setProperty("--input-bg", "#0f141b");
+          root.style.setProperty("--input-border", "#27313d");
+        }
+        themeSelect.value = theme;
+        localStorage.setItem(themeKey, theme);
+      }
+
+      function playBeep() {
+        if (!audioCtx || !soundEnabled) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = 880;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      }
+
+      function startAlarm(names) {
+        activeNames = Array.from(new Set([...activeNames, ...names]));
+        alarmTitle.textContent = activeNames.join(" Â· ");
+        alarmDetail.textContent = t("alarmActive");
+        overlay.classList.add("active");
+
+        ensureAudio();
+        if (soundEnabled) {
+          if (beepInterval) clearInterval(beepInterval);
+          beepInterval = setInterval(playBeep, 800);
+          playBeep();
+        }
+
+        if (alarmTimeout) clearTimeout(alarmTimeout);
+        alarmTimeout = setTimeout(stopAlarm, 60000);
+      }
+
+      function stopAlarm() {
+        activeNames = [];
+        overlay.classList.remove("active");
+        if (beepInterval) clearInterval(beepInterval);
+        beepInterval = null;
+        if (alarmTimeout) clearTimeout(alarmTimeout);
+        alarmTimeout = null;
+      }
+
+      function render() {
+        listEl.innerHTML = "";
+        const now = new Date();
+        const fileSoon = fileAlarms
+          .filter((a) => a.time >= now && a.time < addHours(now, 24))
+          .map((a) => ({
+            type: "file",
+            time: a.time,
+            name: a.name,
+            source: a.source || "alarms.txt",
+          }));
+        const manual = alarms.map((a) => ({
+          type: "manual",
+          alarm: a,
+          time: getNextOccurrence(a),
+        }));
+        const combined = manual
+          .filter((a) => a.time)
+          .concat(fileSoon)
+          .sort((a, b) => a.time - b.time);
+
+        if (fileSources.length === 0 || fileSoon.length === 0) {
+          fileStatus = "empty";
+          fileStatusEl.textContent = t("fileEmpty");
+        } else {
+          fileStatus = "ok";
+          fileStatusEl.textContent = "";
+        }
+
+        combined.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "alarm";
+          if (item.type === "manual") {
+            const alarm = item.alarm;
+            if (alarm.muted) row.classList.add("muted");
+
+            const timeInput = document.createElement("input");
+            timeInput.type = "time";
+            timeInput.value = alarm.time;
+            timeInput.addEventListener("change", (e) => {
+              alarm.time = e.target.value;
+              lastTriggered.delete(alarm.id);
+              save();
+              updateNext();
+            });
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.placeholder = t("alarmNameInline");
+            nameInput.value = alarm.name || "";
+            nameInput.addEventListener("input", (e) => {
+              alarm.name = e.target.value;
+              save();
+            });
+
+            const muteBtn = document.createElement("button");
+            muteBtn.className = "mute";
+            muteBtn.textContent = alarm.muted ? t("unmute") : t("mute");
+            muteBtn.addEventListener("click", () => {
+              alarm.muted = !alarm.muted;
+              muteBtn.textContent = alarm.muted ? t("unmute") : t("mute");
+              save();
+              render();
+              updateNext();
+            });
+
+            const delBtn = document.createElement("button");
+            delBtn.className = "danger";
+            delBtn.textContent = t("delete");
+            delBtn.addEventListener("click", () => {
+              alarms = alarms.filter((a) => a.id !== alarm.id);
+              save();
+              render();
+              updateNext();
+            });
+
+            row.append(timeInput, nameInput, muteBtn, delBtn);
+          } else {
+            const timeEl = document.createElement("div");
+            timeEl.textContent = formatDateTime(item.time);
+            const nameEl = document.createElement("div");
+            nameEl.textContent = item.name;
+            const tag = document.createElement("small");
+            tag.textContent = item.source;
+            const delBtn = document.createElement("button");
+            delBtn.className = "danger";
+            delBtn.textContent = t("delete");
+            delBtn.addEventListener("click", () => deleteFileSource(item.source));
+            row.append(timeEl, nameEl, tag, delBtn);
+          }
+          listEl.appendChild(row);
+        });
+      }
+
+
+      function addAlarm() {
+        const time = newTimeEl.value;
+        if (!time) return;
+        const name = newNameEl.value.trim();
+        alarms.push({
+          id: crypto.randomUUID(),
+          time,
+          name,
+          muted: false,
+        });
+        newTimeEl.value = "";
+        newNameEl.value = "";
+        save();
+        render();
+        updateNext();
+      }
+
+      function updateNext() {
+        const now = new Date();
+        const candidates = alarms
+          .filter((a) => !a.muted && a.time)
+          .map((a) => {
+            const next = getNextOccurrence(a, now);
+            return next ? { alarm: a, next, label: a.name } : null;
+          });
+        const fileCandidates = fileAlarms
+          .filter((a) => a.time >= now && a.time < addHours(now, 24))
+          .map((a) => ({ alarm: a, next: a.time, label: a.name }));
+        const combined = candidates.concat(fileCandidates).filter(Boolean);
+        if (combined.length === 0) {
+          nextEl.textContent = t("nextNone");
+          return;
+        }
+        combined.sort((a, b) => a.next - b.next);
+        const next = combined[0];
+        const diffMs = next.next - now;
+        const totalSec = Math.max(0, Math.floor(diffMs / 1000));
+        const hrs = Math.floor(totalSec / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        const parts = [];
+        if (hrs > 0) parts.push(`${hrs} ${t("hour")}`);
+        if (mins > 0) parts.push(`${mins} ${t("minute")}`);
+        parts.push(`${secs} ${t("second")}`);
+        const label = next.label ? ` (${next.label})` : "";
+        nextEl.innerHTML =
+          `${t("nextPrefix")}${label} ${t("nextIn")}<span>${parts.join(" ")}</span>`;
+      }
+
+      function getNextOccurrence(alarm, now = new Date()) {
+        if (!alarm.time) return null;
+        const [hh, mm] = alarm.time.split(":").map(Number);
+        const next = new Date(now);
+        next.setHours(hh, mm, 0, 0);
+        if (next <= now) next.setDate(next.getDate() + 1);
+        return next;
+      }
+
+      function tick() {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        const today = now.toISOString().slice(0, 10);
+
+        if (now.getSeconds() === 0) {
+          const triggered = [];
+          alarms.forEach((alarm) => {
+            if (alarm.muted) return;
+            if (alarm.time === `${hh}:${mm}`) {
+              const last = lastTriggered.get(alarm.id);
+              if (last !== today) {
+                lastTriggered.set(alarm.id, today);
+                triggered.push(alarm.name || "Alarm");
+              }
+            }
+          });
+          if (triggered.length > 0) startAlarm(triggered);
+        }
+
+        if (now.getSeconds() === 0) {
+          const fileTriggered = [];
+          fileAlarms.forEach((a) => {
+            const key = a.time.toISOString();
+            if (lastTriggeredFile.get(key)) return;
+            if (
+              a.time.getFullYear() === now.getFullYear() &&
+              a.time.getMonth() === now.getMonth() &&
+              a.time.getDate() === now.getDate() &&
+              a.time.getHours() === now.getHours() &&
+              a.time.getMinutes() === now.getMinutes()
+            ) {
+              lastTriggeredFile.set(key, true);
+              fileTriggered.push(a.name);
+            }
+          });
+          if (fileTriggered.length > 0) startAlarm(fileTriggered);
+        }
+
+        updateNext();
+        if (now.getSeconds() === 0) {
+          render();
+        }
+      }
+
+      addBtn.addEventListener("click", () => {
+        ensureAudio();
+        addAlarm();
+      });
+      dismissBtn.addEventListener("click", stopAlarm);
+      enableSoundBtn.addEventListener("click", () => {
+        if (soundEnabled) {
+          disableAudio();
+        } else {
+          ensureAudio();
+        }
+      });
+      themeSelect.addEventListener("change", (e) => applyTheme(e.target.value));
+      langSelect.addEventListener("change", (e) => applyLang(e.target.value));
+      document.addEventListener(
+        "click",
+        () => {
+          if (!soundEnabled) ensureAudio();
+        },
+        { once: true }
+      );
+
+      load();
+      render();
+      updateNext();
+      loadFileAlarms();
+      setInterval(tick, 1000);
+      // File sources are stored locally; no background fetch needed.
+
+      fileInputEl.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        const defaultName = file.name.replace(/\.[^.]+$/, "");
+        const name = window.prompt("Name this alarm file:", defaultName);
+        if (name) addFileSource(name, text);
+        fileInputEl.value = "";
+      });
+      loadPasteBtn.addEventListener("click", () => {
+        const text = filePasteEl.value.trim();
+        if (!text) return;
+        const name = window.prompt("Name this alarm file:", "Pasted");
+        if (name) addFileSource(name, text);
+      });
+    </script>
+  </body>
+</html>
