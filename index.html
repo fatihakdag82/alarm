@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -260,6 +260,7 @@
           <button id="add" class="primary">Add Alarm</button>
           <button id="enable-sound" class="neutral">Enable Sound</button>
           <span class="sound-note" id="sound-status">Sound locked until user interaction.</span>
+          <span class="sound-note" id="storage-status"></span>
         </div>
         <div class="alarms" id="alarm-list"></div>
         <div class="next" id="next-alarm">No upcoming alarms.</div>
@@ -297,6 +298,7 @@
       const dismissBtn = document.getElementById("dismiss");
       const enableSoundBtn = document.getElementById("enable-sound");
       const soundStatus = document.getElementById("sound-status");
+      const storageStatus = document.getElementById("storage-status");
       const themeSelect = document.getElementById("theme-select");
       const langSelect = document.getElementById("lang-select");
 
@@ -310,6 +312,7 @@
       let fileAlarms = [];
       let fileSources = [];
       let fileStatus = "empty";
+      let storageAvailable = true;
 
       const i18n = {
         en: {
@@ -341,6 +344,7 @@
           fileEmpty: "No file-based alarms in the next 24 hours.",
           filePastePlaceholder: "Paste alarms.txt content here",
           fileLoadPaste: "Load Pasted",
+          storageUnavailable: "Storage unavailable. Changes won't persist.",
         },
         tr: {
           title: "Çoklu Alarm",
@@ -371,6 +375,7 @@
           fileEmpty: "Önümüzdeki 24 saat içinde dosya alarmı yok.",
           filePastePlaceholder: "alarms.txt içeriğini buraya yapıştırın",
           fileLoadPaste: "Yapıştırılanı Yükle",
+          storageUnavailable: "Depolama kapalı. Değişiklikler kaydedilmeyecek.",
         },
       };
       let currentLang = "en";
@@ -382,12 +387,13 @@
       function applyLang(lang) {
         currentLang = lang;
         langSelect.value = lang;
-        localStorage.setItem(langKey, lang);
+        setStorage(langKey, lang);
         document.querySelector("h1").textContent = t("title");
         document.querySelector(".sub").textContent = t("subtitle");
         addBtn.textContent = t("add");
         enableSoundBtn.textContent = soundEnabled ? t("soundEnabledBtn") : t("enableSound");
         soundStatus.textContent = soundEnabled ? t("soundEnabled") : t("soundLocked");
+        storageStatus.textContent = storageAvailable ? "" : t("storageUnavailable");
         document.querySelector('label[for="theme-select"]').textContent =
           t("theme");
         document.querySelector('label[for="lang-select"]').textContent =
@@ -411,17 +417,39 @@
       let alarmTimeout = null;
       let activeNames = [];
 
+      function getStorage(key) {
+        try {
+          return localStorage.getItem(key);
+        } catch {
+          storageAvailable = false;
+          if (storageStatus) storageStatus.textContent = t("storageUnavailable");
+          return null;
+        }
+      }
+
+      function setStorage(key, value) {
+        try {
+          localStorage.setItem(key, value);
+        } catch {
+          storageAvailable = false;
+          if (storageStatus) storageStatus.textContent = t("storageUnavailable");
+        }
+      }
+
       function load() {
         try {
-          const raw = localStorage.getItem(storageKey);
+          const raw = getStorage(storageKey);
           alarms = raw ? JSON.parse(raw) : [];
         } catch {
           alarms = [];
         }
-        const savedTheme = localStorage.getItem(themeKey) || "night";
+        const savedTheme = getStorage(themeKey) || "night";
         applyTheme(savedTheme);
-        const savedLang = localStorage.getItem(langKey) || "en";
+        const savedLang = getStorage(langKey) || "en";
         applyLang(savedLang);
+        if (!storageAvailable) {
+          storageStatus.textContent = t("storageUnavailable");
+        }
       }
 
       function addHours(date, hours) {
@@ -471,7 +499,7 @@
 
       async function loadFileAlarms() {
         try {
-          const raw = localStorage.getItem(fileSourcesKey);
+          const raw = getStorage(fileSourcesKey);
           fileSources = raw ? JSON.parse(raw) : [];
         } catch {
           fileSources = [];
@@ -480,7 +508,7 @@
       }
 
       function saveFileSources() {
-        localStorage.setItem(fileSourcesKey, JSON.stringify(fileSources));
+        setStorage(fileSourcesKey, JSON.stringify(fileSources));
       }
 
       function rebuildFileAlarms() {
@@ -519,7 +547,10 @@
       }
 
       function save() {
-        localStorage.setItem(storageKey, JSON.stringify(alarms));
+        setStorage(storageKey, JSON.stringify(alarms));
+        if (!storageAvailable) {
+          storageStatus.textContent = t("storageUnavailable");
+        }
       }
 
       function ensureAudio() {
@@ -595,7 +626,7 @@
           root.style.setProperty("--input-border", "#27313d");
         }
         themeSelect.value = theme;
-        localStorage.setItem(themeKey, theme);
+        setStorage(themeKey, theme);
       }
 
       function playBeep() {
