@@ -345,9 +345,10 @@
           filePastePlaceholder: "Paste alarms.txt content here",
           fileLoadPaste: "Load Pasted",
           storageUnavailable: "Storage unavailable. Changes won't persist.",
+          timePrompt: "Enter time (HH:MM)",
         },
         tr: {
-          title: "Çoklu Alarm 2",
+          title: "Çoklu Alarm 3",
           subtitle: "İstediğin kadar alarm ekle. Her alarm saatinde her gün tekrarlar.",
           add: "Alarm Ekle",
           enableSound: "Sesi Etkinleştir",
@@ -376,6 +377,7 @@
           filePastePlaceholder: "alarms.txt içeriğini buraya yapıştırın",
           fileLoadPaste: "Yapıştırılanı Yükle",
           storageUnavailable: "Depolama kapalı. Değişiklikler kaydedilmeyecek.",
+          timePrompt: "Saat girin (SS:DD)",
         },
       };
       let currentLang = "en";
@@ -763,11 +765,16 @@
 
 
       function addAlarm() {
-        const time = newTimeEl.value;
-        if (!time) return;
+        let time = newTimeEl.value;
+        if (!time) {
+          const manual = window.prompt(t("timePrompt") || "Enter time (HH:MM)", "");
+          if (!manual) return;
+          time = manual.trim();
+        }
+        if (!/^\d{1,2}:\d{2}$/.test(time)) return;
         const name = newNameEl.value.trim();
         alarms.push({
-          id: crypto.randomUUID(),
+          id: createId(),
           time,
           name,
           muted: false,
@@ -777,6 +784,13 @@
         save();
         render();
         updateNext();
+      }
+
+      function createId() {
+        try {
+          if (crypto && crypto.randomUUID) return crypto.randomUUID();
+        } catch {}
+        return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       }
 
       function updateNext() {
@@ -913,4 +927,3 @@
     </script>
   </body>
 </html>
-
